@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/runme.dir/src/main.cpp.o -o runme  /usr/lib/libraylib.so -L/usr/lib -lraylib
