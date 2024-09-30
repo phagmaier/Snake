@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <algorithm>
 
-#define BLOCKSIZE 10
+#define BLOCKSIZE 20
 #define SCREENH 600
 #define SCREENW 600
 
@@ -46,6 +46,22 @@ Direction get_dir(Direction curr) {
     return curr;
 }
 
+void drawButton(Rectangle bounds, const char* text, Color color) {
+    DrawRectangleRounded(bounds, 0.2f, 20, color);
+    DrawRectangleRoundedLines(bounds, 0.2f, 20, 2, WHITE);
+    
+    int fontSize = 20;
+    Vector2 textSize = MeasureTextEx(GetFontDefault(), text, fontSize, 1);
+    Vector2 textPosition = {
+        bounds.x + (bounds.width - textSize.x) / 2,
+        bounds.y + (bounds.height - textSize.y) / 2
+    };
+    
+    DrawText(text, textPosition.x, textPosition.y, fontSize, WHITE);
+}
+
+
+
 snakeVec init_position(){
     snakeVec vec;
     for (int i = 0; i < SCREENH; i += BLOCKSIZE) {
@@ -55,7 +71,6 @@ snakeVec init_position(){
     }
     return vec;
 }
-
 
 void delete_element(snakeVec &vec, const std::pair<int,int> &val){
   auto it = std::remove(vec.begin(), vec.end(), val);
@@ -87,30 +102,30 @@ bool update_snake(snakeVec &snake, Direction dir, std::pair<int,int> &food, snak
   std::pair<int, int> change = dirDic[dir];
   head.first += change.first;
   head.second += change.second;
-  bool over = false;
+
+  // Check for wall collision
   if (head.first >= SCREENW || head.first < 0 || head.second >= SCREENH || head.second < 0) {
     return true;
   }
-  for (const auto& segment : snake) {
-    if (head == segment){
-      over = true;
-    } 
+
+  // Check for self-collision
+  for (size_t i = 1; i < snake.size(); ++i) {
+    if (head == snake[i]) {
+      return true;
+    }
   }
+
+  // Move the snake
   snake.insert(snake.begin(), head);
   if (head == food) {
     random_food(free_squares, food);  // Generate new food
     ++score;
-  } 
-  else {
+  } else {
     snake.pop_back(); // Remove the last segment of the snake (tail) unless it eats the food
   }
 
-  for (const auto& segment : snake) {
-    DrawRectangle(segment.first, segment.second, BLOCKSIZE, BLOCKSIZE, BLACK);
-  }
-  return over;
+  return false;
 }
-
 void resetGame(snakeVec &snake, Direction &dir, std::pair<int,int> &food, snakeVec &free_vec, int &score){
   snake.clear();
   snake.push_back({0,0});
@@ -123,8 +138,8 @@ void resetGame(snakeVec &snake, Direction &dir, std::pair<int,int> &food, snakeV
   score = 0;
 }
 
-
-int main(){
+int main() {
+    int high_score = 0;
     int counter = 0;
     bool gameOver = false;
     int score = 0;
@@ -135,46 +150,57 @@ int main(){
     delete_element(free_vec, {0,0});
     delete_element(free_vec, food);
 
-
     InitWindow(SCREENW, SCREENH, "SNAKE");
     SetTargetFPS(60);
 
-    Rectangle newGameBtn = { SCREENW / 2 - 150, SCREENH / 2 + 100, 400, 100 };    
+    Rectangle newGameBtn = { SCREENW / 2 - 100, SCREENH / 2 + 50, 200, 50 };    
     
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
         
         if (!gameOver) {
-          dir = get_dir(dir);
-          if (counter == 2){
-            gameOver = update_snake(snake, dir, food, free_vec,score);
-            counter = 0;
-          }
-          drawSnake(snake);
-          drawfood(food);
-          DrawText(("Score: " + std::to_string(score)).c_str(), 10, 10, 20, GREEN);
-          ++counter;
+            dir = get_dir(dir);
+            if (counter == 3){
+                gameOver = update_snake(snake, dir, food, free_vec,score);
+                counter = 0;
+            }
+            drawSnake(snake);
+            drawfood(food);
+            
+            // Draw game border
+            DrawRectangleLinesEx((Rectangle){0, 0, SCREENW, SCREENH}, 2, DARKGRAY);
+            
+            // Draw scores with a background
+            DrawRectangle(0, 0, SCREENW, 40, Fade(LIGHTGRAY, 0.5f));
+            DrawText(("Score: " + std::to_string(score)).c_str(), 10, 10, 20, DARKGREEN);
+            DrawText(("High Score: " + std::to_string(high_score)).c_str(), SCREENW - 200, 10, 20, MAROON);
+            ++counter;
         } 
-        
         else {
-          DrawText("Game Over!", SCREENW / 2 - 80, SCREENH / 2, 30, RED);
-          counter = 0;
+            high_score = score > high_score ? score : high_score;
+            
+            // Draw semi-transparent overlay
+            DrawRectangle(0, 0, SCREENW, SCREENH, Fade(BLACK, 0.7f));
+            
+            // Draw "Game Over" text
+            const char* gameOverText = "Game Over!";
+            int fontSize = 40;
+            Vector2 textSize = MeasureTextEx(GetFontDefault(), gameOverText, fontSize, 1);
+            DrawText(gameOverText, (SCREENW - textSize.x) / 2, SCREENH / 2 - 100, fontSize, RED);
+            
+            // Draw final score and high score
+            DrawText(("Final Score: " + std::to_string(score)).c_str(), SCREENW / 2 - 80, SCREENH / 2 - 20, 20, WHITE);
+            DrawText(("High Score: " + std::to_string(high_score)).c_str(), SCREENW / 2 - 80, SCREENH / 2 + 10, 20, GOLD);
 
-          // Draw the button background with a gradient effect
-          Color lightGray = Color{200, 200, 200, 255};
-          Color darkGray = Color{100, 100, 100, 255};
-          DrawRectangleGradientV(newGameBtn.x, newGameBtn.y, newGameBtn.width, newGameBtn.height, lightGray, darkGray);
-          DrawRectangleLinesEx(newGameBtn, 2, BLACK);
+            // Draw the new game button
+            drawButton(newGameBtn, "New Game", DARKGREEN);
 
-          // Draw button text
-          DrawText("PRESS ENTER FOR NEW GAME", newGameBtn.x + 25, newGameBtn.y + 35, 20, BLACK);
-
-          // Check for Enter key press to restart the game
-          if (IsKeyPressed(KEY_ENTER)) {
-              resetGame(snake, dir, food, free_vec, score);
-              gameOver = false;
-          }
+            // Check for Enter key press or button click to restart the game
+            if (IsKeyPressed(KEY_ENTER) || (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), newGameBtn))) {
+                resetGame(snake, dir, food, free_vec, score);
+                gameOver = false;
+            }
         }
         
         EndDrawing();
@@ -183,4 +209,3 @@ int main(){
     CloseWindow();
     return 0;
 }
-

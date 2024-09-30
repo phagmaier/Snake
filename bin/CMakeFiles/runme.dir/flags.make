@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = 
 
-CXX_FLAGS = -std=gnu++11 -I/usr/include
+CXX_FLAGS = -std=c++20 -O3 -Wall -Wextra -Wpedantic -I/usr/include
 

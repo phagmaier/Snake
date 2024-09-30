@@ -1,8 +1,17 @@
 cmake_minimum_required(VERSION 3.10)
 project(raylib_example)
 
-# Set the C++ standard to C++11 (you can change this to C++14, C++17, etc., if needed)
-set(CMAKE_CXX_STANDARD 11)
+# Set the C++ standard to C++20
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Add maximum optimization flags
+if(MSVC)
+    add_compile_options(/O2 /W4)
+else()
+    add_compile_options(-O3 -Wall -Wextra -Wpedantic)
+endif()
 
 # Find raylib package
 find_package(raylib REQUIRED)
